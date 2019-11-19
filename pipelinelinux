@@ -1,0 +1,47 @@
+pipeline {
+    /*agent {
+        docker {
+            image 'registry.access.redhat.com/ubi7/ubi:latest' 
+            args '-v /root/.m2:/root/.m2' 
+        }
+    }*/
+    
+    agent {
+        label 'dev'
+    }
+    stages {
+    
+        stage('Checkout') {
+            steps {
+                    sh '''
+                    sudo yum -y install git maven
+                    rm -rf simple-java-maven-app
+                    git clone https://github.com/mvignesh12/simple-java-maven-app.git
+                    '''
+            }
+        }
+        
+        stage('Build') { 
+            steps {
+                sh 'cd simple-java-maven-app && mvn -B -DskipTests clean package' 
+            }
+        }
+        
+        stage('Test') { 
+            steps {
+                sh 'cd simple-java-maven-app && mvn test'
+            }
+            post {
+                always {
+                    junit 'simple-java-maven-app/target/surefire-reports/*.xml' 
+                }
+            }
+        }
+        
+        stage('Deliver') { 
+            steps {
+                sh 'cd simple-java-maven-app && ./jenkins/scripts/deliver.sh' 
+            }
+        }
+    }
+}
