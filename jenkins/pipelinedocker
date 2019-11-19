@@ -1,0 +1,61 @@
+COLOR='\033[0;32m'
+NC='\033[0m'
+
+pipeline {
+    agent {
+        docker {
+            //image 'registry.access.redhat.com/ubi7/ubi:latest'
+            image 'amazonlinux:2'
+            args '-v /root/.m2:/root/.m2' 
+        }
+    }
+    
+    options {
+        ansiColor('xterm')
+    }
+    
+    stages {
+    
+        stage('Checkout') {
+            steps {
+                    sh """
+                    echo -e "${COLOR}CHECKOUT${NC}"
+                    rm -rf simple-java-maven-app
+                    git clone https://github.com/mvignesh12/simple-java-maven-app.git
+                    """
+            }
+        }
+        
+        stage('Build') { 
+            steps {
+                sh """
+                echo -e "${COLOR}BUILD${NC}"
+                cd simple-java-maven-app && mvn -B -DskipTests clean package
+                """
+            }
+        }
+        
+        stage('Test') { 
+            steps {
+                sh """
+                echo -e "${COLOR}TEST${NC}"
+                cd simple-java-maven-app && mvn test
+                """
+            }
+            post {
+                always {
+                    junit 'simple-java-maven-app/target/surefire-reports/*.xml' 
+                }
+            }
+        }
+        
+        stage('Deliver') { 
+            steps {
+                sh """
+                echo -e "${COLOR}DELIVER${NC}"
+                cd simple-java-maven-app && ./jenkins/scripts/deliver.sh
+                """
+            }
+        }
+    }
+}
